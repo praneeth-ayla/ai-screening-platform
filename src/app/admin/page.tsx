@@ -1,34 +1,28 @@
-import { auth, signOut } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import { AdminSidebar } from "@/components/admin/sidebar";
+import prisma from "@/lib/prisma";
 
-export default async function AdminPage() {
-  const session = await auth();
+export default async function AdminDashboardPage() {
+  const totalJobs = await prisma.job.count();
 
-  if (!session || session.user.role !== "ADMIN") {
-    redirect("/");
-  }
+  const totalApplications = await prisma.jobApplication.count();
 
   return (
-    <main className="p-10 space-y-6">
-      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+    <div>
+      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
-      <div>
-        <p>{session.user.name}</p>
-        <p>{session.user.email}</p>
-        <p>Role: {session.user.role}</p>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="border rounded-xl p-6">
+          <p>Total Jobs</p>
+
+          <h2 className="text-3xl font-bold">{totalJobs}</h2>
+        </div>
+
+        <div className="border rounded-xl p-6">
+          <p>Total Applications</p>
+
+          <h2 className="text-3xl font-bold">{totalApplications}</h2>
+        </div>
       </div>
-
-      <form
-        action={async () => {
-          "use server";
-
-          await signOut({
-            redirectTo: "/",
-          });
-        }}
-      >
-        <button className="border px-4 py-2 rounded">Logout</button>
-      </form>
-    </main>
+    </div>
   );
 }

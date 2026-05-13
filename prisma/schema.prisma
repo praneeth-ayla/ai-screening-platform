@@ -49,8 +49,13 @@ model User {
   emailVerified DateTime? @map("email_verified")
   image         String?
   role          Role      @default(USER)
-  accounts      Account[]
-  sessions      Session[]
+
+  accounts Account[]
+  sessions Session[]
+
+  applications JobApplication[]
+
+  createdJobs Job[] @relation("CreatedJobs")
 
   @@map("users")
 }
@@ -60,11 +65,81 @@ enum Role {
   ADMIN
 }
 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
+model Job {
+  id    String @id @default(cuid())
+  title String
+  slug  String @unique
 
-  @@unique([identifier, token])
-  @@map("verification_tokens")
+  shortDescription String
+  description      String @db.Text
+
+  location        String?
+  employmentType  EmploymentType
+  experienceLevel ExperienceLevel
+
+  salaryMin Int?
+  salaryMax Int?
+
+  skills String[]
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation("CreatedJobs", fields: [createdById], references: [id])
+
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id String @id @default(cuid())
+
+  jobId  String
+  userId String
+
+  fullName String
+  email    String
+  phone    String?
+
+  linkedinUrl  String?
+  portfolioUrl String?
+
+  coverLetter String? @db.Text
+
+  resumeUrl String?
+
+  screeningScore    Int?
+  screeningFeedback String? @db.Text
+
+  status ApplicationStatus @default(APPLIED)
+
+  appliedAt DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, userId])
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERN
+}
+
+enum ExperienceLevel {
+  ENTRY
+  MID
+  SENIOR
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  SHORTLISTED
+  REJECTED
+  HIRED
 }
