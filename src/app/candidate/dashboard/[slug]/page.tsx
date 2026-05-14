@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ApplyForm } from "@/components/ApplyForm";
 
+export const dynamic = "force-dynamic";
+
 function formatEmploymentType(type: string) {
   return type
     .replace("_", " ")

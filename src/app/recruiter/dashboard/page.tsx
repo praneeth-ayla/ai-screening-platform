@@ -1,6 +1,8 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function formatStatus(status: string) {
   return status
     .replace("_", " ")
