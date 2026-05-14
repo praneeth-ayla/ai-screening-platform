@@ -19,10 +19,15 @@ export async function POST(req: Request) {
       title: body.title,
       description: body.description,
       location: body.location,
+
+      employmentType: body.employmentType,
+      experienceLevel: body.experienceLevel,
+
+      salaryMin: body.salaryMin || null,
+      salaryMax: body.salaryMax || null,
+
       slug: crypto.randomUUID(),
-      employmentType: "FULL_TIME",
-      experienceLevel: "MID",
-      shortDescription: body.description,
+
       createdById: session.user.id,
     },
   });

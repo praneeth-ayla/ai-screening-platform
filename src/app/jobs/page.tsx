@@ -2,11 +2,7 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 
 export default async function JobsPage() {
-  const jobs = await prisma.job.findMany({
-    where: {
-      isActive: true,
-    },
-  });
+  const jobs = await prisma.job.findMany();
 
   return (
     <div className="max-w-5xl mx-auto py-10">
@@ -19,7 +15,9 @@ export default async function JobsPage() {
           >
             <h2 className="text-xl font-semibold">{job.title}</h2>
 
-            <p className="mt-2 text-muted-foreground">{job.shortDescription}</p>
+            <p className="mt-2 text-muted-foreground">
+              {job.description.slice(0, 300)}
+            </p>
           </Link>
         ))}
       </div>
