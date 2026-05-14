@@ -3,34 +3,29 @@ import { evaluateCandidate } from "@/lib/evaluate";
 
 export async function POST(req: Request) {
   try {
+    // Parse incoming webhook payload
     const payload = await req.json();
-
+    console.log({ payload });
+    // Unique interview execution id from provider
     const executionId = payload.execution_id;
 
+    // Some providers send transcript under different keys
     const transcript = payload.transcript || payload.conversation_transcript;
 
-    if (!transcript) {
-      return Response.json(
-        {
-          ok: false,
-          error: "No transcript",
-        },
-        { status: 400 },
-      );
-    }
-
-    // FIND APPLICATION
+    // Find candidate application using phone number
     const application = await prisma.jobApplication.findFirst({
       where: {
         phone: payload.recipient_phone_number,
       },
 
+      // Include related job + interview data
       include: {
         job: true,
         interview: true,
       },
     });
 
+    // Application not found
     if (!application) {
       return Response.json(
         {
@@ -41,9 +36,10 @@ export async function POST(req: Request) {
       );
     }
 
+    // Existing interview if already created
     let interview = application.interview;
 
-    // CREATE INTERVIEW IF NOT EXISTS
+    // Create interview record if this is first webhook
     if (!interview) {
       interview = await prisma.interview.create({
         data: {
@@ -54,7 +50,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // SAVE TRANSCRIPT
+    // Save transcript + raw webhook data
     await prisma.interview.update({
       where: {
         id: interview.id,
@@ -63,23 +59,29 @@ export async function POST(req: Request) {
       data: {
         executionId,
         transcript,
+
+        // Mark interview as completed
         completedAt: new Date(),
         interviewStatus: "COMPLETED",
+
+        // Store full webhook for debugging/logging
         rawWebhook: payload,
       },
     });
 
-    // AI EVALUATION
+    // Run AI evaluation on transcript
     const result = await evaluateCandidate({
       transcript,
+
+      // Pass job description for better evaluation context
       jobDescription: application.job.description,
     });
 
-    // DETERMINE APPLICATION STATUS
+    // Decide final application status from AI recommendation
     const applicationStatus =
       result.recommendation === "SHORTLIST" ? "SHORTLISTED" : "REJECTED";
 
-    // UPDATE INTERVIEW
+    // Save AI evaluation results
     await prisma.interview.update({
       where: {
         id: interview.id,
@@ -88,13 +90,16 @@ export async function POST(req: Request) {
       data: {
         aiScore: result.score,
         aiSummary: result.summary,
+
+        // Arrays of positives + negatives
         strengths: result.strengths || [],
         weaknesses: result.weaknesses || [],
+
         recommendation: result.recommendation,
       },
     });
 
-    // UPDATE APPLICATION STATUS
+    // Update overall application status
     await prisma.jobApplication.update({
       where: {
         id: application.id,
@@ -105,12 +110,15 @@ export async function POST(req: Request) {
       },
     });
 
+    // Success response
     return Response.json({
       ok: true,
     });
   } catch (error) {
+    // Log actual error in server console
     console.error(error);
 
+    // Generic error response to client
     return Response.json(
       {
         ok: false,
